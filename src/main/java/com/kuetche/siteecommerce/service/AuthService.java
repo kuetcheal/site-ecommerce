@@ -9,12 +9,12 @@ import com.kuetche.siteecommerce.enums.Role;
 import com.kuetche.siteecommerce.repository.ClientRepository;
 import com.kuetche.siteecommerce.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +24,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final ProviderManager authenticationManager;
     private final JwtService jwtService;
+    private final EmailService emailService;
 
     public AuthResponse register(RegisterRequest request) {
         if (clientRepository.existsByEmail(request.email())) {
@@ -41,6 +42,12 @@ public class AuthService {
                 .build();
 
         Client savedClient = clientRepository.save(client);
+
+        try {
+            emailService.envoyerEmailBienvenue(savedClient);
+        } catch (Exception e) {
+            System.err.println("Erreur lors de l'envoi de l'e-mail de bienvenue : " + e.getMessage());
+        }
 
         String token = jwtService.generateToken(savedClient);
 
