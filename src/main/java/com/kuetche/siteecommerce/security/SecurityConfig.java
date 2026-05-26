@@ -60,7 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/produits/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/produits/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/produits/**").hasAuthority("ROLE_ADMIN")
-
+                        .requestMatchers("/api/commandes/**").authenticated()
                         // Toutes les autres routes nécessitent une authentification
                         .anyRequest().authenticated()
                 )

@@ -59,7 +59,7 @@
          <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
-		<!-- depense du gmail -->
+		<!-- dependance du gmail -->
 		<dependency>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-starter-mail</artifactId>
@@ -71,12 +71,20 @@
           <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
 
-		<!-- depense du cloudinary -->
+		<!-- dependance du cloudinary -->
 		<dependency>
           <groupId>com.cloudinary</groupId>
           <artifactId>cloudinary-http44</artifactId>
           <version>1.39.0</version>
         </dependency>
+
+		<!-- dependance pour stripe -->
+        <dependency>
+           <groupId>com.stripe</groupId>
+           <artifactId>stripe-java</artifactId>
+           <version>32.1.0</version>
+        </dependency>
+
 
 		<dependency>
 			<groupId>org.projectlombok</groupId>
