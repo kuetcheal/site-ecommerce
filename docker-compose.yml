@@ -1,0 +1,56 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: site-ecommerce-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: site_ecommerce
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3307:3306"
+    volumes:
+      - site_ecommerce_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - site-ecommerce-network
+
+  backend:
+    build: .
+    container_name: site-ecommerce-backend
+    restart: always
+    env_file:
+      - .env.docker
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - site-ecommerce-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: site-ecommerce-phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ALLOW_NO_PASSWORD: "yes"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - site-ecommerce-network
+
+volumes:
+  site_ecommerce_mysql_data:
+
+networks:
+  site-ecommerce-network:
+    driver: bridge
