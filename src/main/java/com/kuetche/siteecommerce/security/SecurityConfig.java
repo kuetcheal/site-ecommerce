@@ -17,7 +17,10 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.*;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -44,10 +47,12 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
 
-                        // Nécessaire pour les requêtes CORS envoyées par React
+                        // Requêtes CORS envoyées par React
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                         // Routes publiques d'authentification
@@ -56,11 +61,28 @@ public class SecurityConfig {
                         // Consultation publique des produits
                         .requestMatchers(HttpMethod.GET, "/api/produits/**").permitAll()
 
+                        // Envoi du formulaire de contact public
+                        .requestMatchers(HttpMethod.POST, "/api/contacts").permitAll()
+
+                        // .requestMatchers(HttpMethod.POST, "/api/produits/**").permitAll()
+
+                        // Gestion des messages de contact réservée à l'administrateur
+                        .requestMatchers("/api/contacts/admin", "/api/contacts/admin/**")
+                        .hasAuthority("ROLE_ADMIN")
+
                         // Gestion des produits réservée à l'administrateur
-                        .requestMatchers(HttpMethod.POST, "/api/produits/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/produits/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/produits/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/produits/**")
+                        .hasAuthority("ROLE_ADMIN")
+
+                        .requestMatchers(HttpMethod.PUT, "/api/produits/**")
+                        .hasAuthority("ROLE_ADMIN")
+
+                        .requestMatchers(HttpMethod.DELETE, "/api/produits/**")
+                        .hasAuthority("ROLE_ADMIN")
+
+                        // Commandes réservées aux utilisateurs connectés
                         .requestMatchers("/api/commandes/**").authenticated()
+
                         // Toutes les autres routes nécessitent une authentification
                         .anyRequest().authenticated()
                 )
@@ -84,9 +106,13 @@ public class SecurityConfig {
     }
 
     @Bean
-    public ProviderManager authenticationManager(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+    public ProviderManager authenticationManager(
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder
+    ) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder);
+
         return new ProviderManager(provider);
     }
 
@@ -122,9 +148,9 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        JwtGrantedAuthoritiesConverter authoritiesConverter =
+                new JwtGrantedAuthoritiesConverter();
 
-        // Le JwtService doit envoyer une claim "roles" contenant par exemple "ROLE_CLIENT" ou "ROLE_ADMIN"
         authoritiesConverter.setAuthoritiesClaimName("roles");
         authoritiesConverter.setAuthorityPrefix("");
 
@@ -147,6 +173,7 @@ public class SecurityConfig {
                 "GET",
                 "POST",
                 "PUT",
+                "PATCH",
                 "DELETE",
                 "OPTIONS"
         ));

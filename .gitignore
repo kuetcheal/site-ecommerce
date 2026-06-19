@@ -35,3 +35,5 @@ build/
 ### variables secrets ###
 src/main/resources/application-local.properties
 .env
+.env.docker
+.env.*
