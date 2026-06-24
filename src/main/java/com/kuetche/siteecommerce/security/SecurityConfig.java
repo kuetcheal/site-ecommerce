@@ -55,6 +55,10 @@ public class SecurityConfig {
                         // Requêtes CORS envoyées par React
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // Autoriser Promotheus 
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/promotheus").permitAll()
+
                         // Routes publiques d'authentification
                         .requestMatchers("/api/auth/**").permitAll()
 
