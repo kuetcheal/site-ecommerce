@@ -37,157 +37,148 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final ClientRepository clientRepository;
+        private final ClientRepository clientRepository;
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+        @Value("${jwt.secret}")
+        private String jwtSecret;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authorizeHttpRequests(auth -> auth
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                return http
+                                .csrf(csrf -> csrf.disable())
+                                .cors(Customizer.withDefaults())
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
 
-                        // Requêtes CORS envoyées par React
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                // Requêtes CORS envoyées par React
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Autoriser Promotheus 
-                        .requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/actuator/promotheus").permitAll()
+                                                // Autoriser Promotheus
+                                                // Autoriser Actuator / Prometheus
+                                                .requestMatchers("/actuator/health").permitAll()
+                                                .requestMatchers("/actuator/prometheus").permitAll()
 
-                        // Routes publiques d'authentification
-                        .requestMatchers("/api/auth/**").permitAll()
+                                                // Routes publiques d'authentification
+                                                .requestMatchers("/api/auth/**").permitAll()
 
-                        // Consultation publique des produits
-                        .requestMatchers(HttpMethod.GET, "/api/produits/**").permitAll()
+                                                // Consultation publique des produits
+                                                .requestMatchers(HttpMethod.GET, "/api/produits/**").permitAll()
 
-                        // Envoi du formulaire de contact public
-                        .requestMatchers(HttpMethod.POST, "/api/contacts").permitAll()
+                                                // Envoi du formulaire de contact public
+                                                .requestMatchers(HttpMethod.POST, "/api/contacts").permitAll()
 
-                        // .requestMatchers(HttpMethod.POST, "/api/produits/**").permitAll()
+                                                // .requestMatchers(HttpMethod.POST, "/api/produits/**").permitAll()
 
-                        // Gestion des messages de contact réservée à l'administrateur
-                        .requestMatchers("/api/contacts/admin", "/api/contacts/admin/**")
-                        .hasAuthority("ROLE_ADMIN")
+                                                // Gestion des messages de contact réservée à l'administrateur
+                                                .requestMatchers("/api/contacts/admin", "/api/contacts/admin/**")
+                                                .hasAuthority("ROLE_ADMIN")
 
-                        // Gestion des produits réservée à l'administrateur
-                        .requestMatchers(HttpMethod.POST, "/api/produits/**")
-                        .hasAuthority("ROLE_ADMIN")
+                                                // Gestion des produits réservée à l'administrateur
+                                                .requestMatchers(HttpMethod.POST, "/api/produits/**")
+                                                .hasAuthority("ROLE_ADMIN")
 
-                        .requestMatchers(HttpMethod.PUT, "/api/produits/**")
-                        .hasAuthority("ROLE_ADMIN")
+                                                .requestMatchers(HttpMethod.PUT, "/api/produits/**")
+                                                .hasAuthority("ROLE_ADMIN")
 
-                        .requestMatchers(HttpMethod.DELETE, "/api/produits/**")
-                        .hasAuthority("ROLE_ADMIN")
+                                                .requestMatchers(HttpMethod.DELETE, "/api/produits/**")
+                                                .hasAuthority("ROLE_ADMIN")
 
-                        // Commandes réservées aux utilisateurs connectés
-                        .requestMatchers("/api/commandes/**").authenticated()
+                                                // Commandes réservées aux utilisateurs connectés
+                                                .requestMatchers("/api/commandes/**").authenticated()
 
-                        // Toutes les autres routes nécessitent une authentification
-                        .anyRequest().authenticated()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
-                )
-                .build();
-    }
+                                                // Toutes les autres routes nécessitent une authentification
+                                                .anyRequest().authenticated())
+                                .oauth2ResourceServer(oauth2 -> oauth2
+                                                .jwt(jwt -> jwt.jwtAuthenticationConverter(
+                                                                jwtAuthenticationConverter())))
+                                .build();
+        }
 
-    @Bean
-    public UserDetailsService userDetailsService() {
-        return email -> clientRepository.findByEmail(email)
-                .map(client -> User
-                        .withUsername(client.getEmail())
-                        .password(client.getMotDePasse())
-                        .authorities("ROLE_" + client.getRole().name())
-                        .disabled(!client.getActive())
-                        .build()
-                )
-                .orElseThrow(() -> new RuntimeException("Client introuvable avec cet email"));
-    }
+        @Bean
+        public UserDetailsService userDetailsService() {
+                return email -> clientRepository.findByEmail(email)
+                                .map(client -> User
+                                                .withUsername(client.getEmail())
+                                                .password(client.getMotDePasse())
+                                                .authorities("ROLE_" + client.getRole().name())
+                                                .disabled(!client.getActive())
+                                                .build())
+                                .orElseThrow(() -> new RuntimeException("Client introuvable avec cet email"));
+        }
 
-    @Bean
-    public ProviderManager authenticationManager(
-            UserDetailsService userDetailsService,
-            PasswordEncoder passwordEncoder
-    ) {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder);
+        @Bean
+        public ProviderManager authenticationManager(
+                        UserDetailsService userDetailsService,
+                        PasswordEncoder passwordEncoder) {
+                DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+                provider.setPasswordEncoder(passwordEncoder);
 
-        return new ProviderManager(provider);
-    }
+                return new ProviderManager(provider);
+        }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public JwtEncoder jwtEncoder() {
-        SecretKeySpec secretKey = new SecretKeySpec(
-                jwtSecret.getBytes(StandardCharsets.UTF_8),
-                "HmacSHA256"
-        );
+        @Bean
+        public JwtEncoder jwtEncoder() {
+                SecretKeySpec secretKey = new SecretKeySpec(
+                                jwtSecret.getBytes(StandardCharsets.UTF_8),
+                                "HmacSHA256");
 
-        return new NimbusJwtEncoder(
-                new com.nimbusds.jose.jwk.source.ImmutableSecret<>(secretKey)
-        );
-    }
+                return new NimbusJwtEncoder(
+                                new com.nimbusds.jose.jwk.source.ImmutableSecret<>(secretKey));
+        }
 
-    @Bean
-    public JwtDecoder jwtDecoder() {
-        SecretKeySpec secretKey = new SecretKeySpec(
-                jwtSecret.getBytes(StandardCharsets.UTF_8),
-                "HmacSHA256"
-        );
+        @Bean
+        public JwtDecoder jwtDecoder() {
+                SecretKeySpec secretKey = new SecretKeySpec(
+                                jwtSecret.getBytes(StandardCharsets.UTF_8),
+                                "HmacSHA256");
 
-        return NimbusJwtDecoder
-                .withSecretKey(secretKey)
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-    }
+                return NimbusJwtDecoder
+                                .withSecretKey(secretKey)
+                                .macAlgorithm(MacAlgorithm.HS256)
+                                .build();
+        }
 
-    @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter =
-                new JwtGrantedAuthoritiesConverter();
+        @Bean
+        public JwtAuthenticationConverter jwtAuthenticationConverter() {
+                JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
 
-        authoritiesConverter.setAuthoritiesClaimName("roles");
-        authoritiesConverter.setAuthorityPrefix("");
+                authoritiesConverter.setAuthoritiesClaimName("roles");
+                authoritiesConverter.setAuthorityPrefix("");
 
-        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
+                JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+                converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
 
-        return converter;
-    }
+                return converter;
+        }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
 
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://localhost:5173"
-        ));
+                configuration.setAllowedOrigins(List.of(
+                                "http://localhost:3000",
+                                "http://localhost:5173"));
 
-        configuration.setAllowedMethods(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "PATCH",
-                "DELETE",
-                "OPTIONS"
-        ));
+                configuration.setAllowedMethods(List.of(
+                                "GET",
+                                "POST",
+                                "PUT",
+                                "PATCH",
+                                "DELETE",
+                                "OPTIONS"));
 
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+                configuration.setAllowedHeaders(List.of("*"));
+                configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
 
-        return source;
-    }
+                return source;
+        }
 }
