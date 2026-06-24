@@ -1,22 +1,35 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: site-ecommerce-mysql
-    restart: always
-    environment:
-      MYSQL_DATABASE: site_ecommerce
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-    ports:
-      - "3307:3306"
-    volumes:
-      - site_ecommerce_mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - site-ecommerce-network
+  # ============================================================
+  # MYSQL LOCAL DOCKER
+  # Commenté car maintenant le backend utilise Cloud SQL GCP
+  # Décommente ce bloc si tu veux revenir à une base locale Docker
+  # ============================================================
+
+  # mysql:
+  #   image: mysql:8.0
+  #   container_name: site-ecommerce-mysql
+  #   restart: always
+  #   environment:
+  #     MYSQL_DATABASE: site_ecommerce
+  #     MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+  #   ports:
+  #     - "3307:3306"
+  #   volumes:
+  #     - site_ecommerce_mysql_data:/var/lib/mysql
+  #   healthcheck:
+  #     test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 10
+  #   networks:
+  #     - site-ecommerce-network
+
+
+  # ============================================================
+  # BACKEND SPRING BOOT
+  # Actif : il utilise les variables dans .env.docker
+  # Donc actuellement il se connecte à Cloud SQL GCP
+  # ============================================================
 
   backend:
     build: .
@@ -26,31 +39,57 @@ services:
       - .env.docker
     ports:
       - "8081:8081"
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - site-ecommerce-network
 
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: site-ecommerce-phpmyadmin
-    restart: always
-    ports:
-      - "8080:80"
-    environment:
-      PMA_HOST: mysql
-      PMA_PORT: 3306
-      PMA_ALLOW_NO_PASSWORD: "yes"
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - site-ecommerce-network
+    # Commenté car le backend ne dépend plus du MySQL local Docker
+    # depends_on:
+    #   mysql:
+    #     condition: service_healthy
 
-volumes:
-  site_ecommerce_mysql_data:
+    # Réseau custom plus vraiment obligatoire quand seul le backend est actif
+    # Tu peux le garder commenté pour le mode local Docker
+    # networks:
+    #   - site-ecommerce-network
 
-networks:
-  site-ecommerce-network:
-    driver: bridge
+
+  # ============================================================
+  # PHPMYADMIN LOCAL
+  # Commenté car il servait à administrer le MySQL local Docker
+  # Pour Cloud SQL, utilise plutôt Cloud SQL Studio ou MySQL Workbench
+  # ============================================================
+
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin
+  #   container_name: site-ecommerce-phpmyadmin
+  #   restart: always
+  #   ports:
+  #     - "8080:80"
+  #   environment:
+  #     PMA_HOST: mysql
+  #     PMA_PORT: 3306
+  #     PMA_ALLOW_NO_PASSWORD: "yes"
+  #   depends_on:
+  #     mysql:
+  #       condition: service_healthy
+  #   networks:
+  #     - site-ecommerce-network
+
+
+# ============================================================
+# VOLUME LOCAL MYSQL
+# Commenté car MySQL local est désactivé
+# Ne supprime pas les données existantes tant que tu ne fais pas docker compose down -v
+# ============================================================
+
+# volumes:
+#   site_ecommerce_mysql_data:
+
+
+# ============================================================
+# RÉSEAU LOCAL DOCKER
+# Commenté car plus nécessaire quand seul le backend tourne
+# À décommenter avec mysql/phpmyadmin si tu reviens au mode local
+# ============================================================
+
+# networks:
+#   site-ecommerce-network:
+#     driver: bridge

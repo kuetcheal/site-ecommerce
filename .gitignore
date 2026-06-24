@@ -35,5 +35,8 @@ build/
 ### variables secrets ###
 src/main/resources/application-local.properties
 .env
+k8s/prod.env
+github-actions-key.json
 .env.docker
 .env.*
+.env.mysql

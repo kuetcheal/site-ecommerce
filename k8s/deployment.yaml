@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: site-ecommerce-backend
+  namespace: site-ecommerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: site-ecommerce-backend
+  template:
+    metadata:
+      labels:
+        app: site-ecommerce-backend
+    spec:
+      serviceAccountName: site-ecommerce-ksa
+      containers:
+        - name: site-ecommerce-backend
+          image: europe-west9-docker.pkg.dev/easytravel-maps-dev/site-ecommerce-repo/site-ecommerce-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - secretRef:
+                name: site-ecommerce-env
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2
+          args:
+            - "--structured-logs"
+            - "--port=3306"
+            - "easytravel-maps-dev:europe-west9:site-ecommerce-db"
+          securityContext:
+            runAsNonRoot: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
